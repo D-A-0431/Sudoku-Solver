@@ -44,7 +44,7 @@ A voting management project in C is a software application that allows users to 
 
 2. **Compile the Project**
 
-Compile the necessary files to create the visualization tool.
+Compile the necessary files.
 
 ```bash
    gcc main.c -o output
@@ -55,6 +55,7 @@ Compile the necessary files to create the visualization tool.
 
 ```bash
 ./output
+```
 
 
 
