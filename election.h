@@ -1,6 +1,20 @@
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
+#include<termios.h>
+#include<unistd.h>
+
+char getch(void){
+    struct termios oldattr,newattr;
+    char ch;
+    tcgetattr(STDIN_FILENO,&oldattr);
+    newattr=oldattr;
+    newattr.c_lflag &=~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO,TCSANOW,&newattr);
+    ch=getchar();
+    tcsetattr(STDIN_FILENO,TCSANOW,&oldattr);
+    return ch;
+}
 
 struct currentValidID{
     int year;
@@ -20,14 +34,14 @@ int numberOfCandidates; //Total number of candidates standing for election
 char studentVotes[200]; //to store information of votes given by each student
 //----------------------------------------------------------------
 
-//To extract year from userID -- For example, userID:2018btecs00064 year:2018
+//To extract year from userID -- For example, userID:2018btecs00064 year:2018 
 int extractYear(char userID[15])
 {
     int year=0;
     char tmp;
     for(int i=0;i<4;i++){
         tmp=userID[i];
-                year=(year*10)+(tmp-48);
+		year=(year*10)+(tmp-48);
     }
     return year;
 }
@@ -38,7 +52,7 @@ int extractRollNo(char userID[15])
     char tmp;
     for(int i=9;i<14;i++){
         tmp=userID[i];
-                rollno=(rollno*10)+(tmp-48);
+		rollno=(rollno*10)+(tmp-48);
     }
     return rollno;
 }
@@ -59,15 +73,22 @@ int checkBranchCode(char userID[15])
 
 int authenticateAdmin(){
     char username[15], password[6];
-
+    
     printf("\nEnter username: ");
     scanf("%s",username);
+	while( (getchar()) != '\n');
     if((strcmp(username,"Admin"))!=0)
         return 0;
     else
     {
         printf("Enter Password: ");
-          scanf("%s",password);
+        int i=0;
+        for(i=0;i<5;i++)
+        {
+            password[i]=getch();
+            printf("%c",'*');
+        }
+        password[i]='\0';
         if((strcmp(password,"admiN"))!=0)
             return 0;
     }
@@ -99,15 +120,15 @@ void banID(){
 void createCandidateFiles(){
     printf("\nCreating candidate files...\n");
     FILE *fp;
-        char filename[20];
+	char filename[20];
     for(int i = 1;i <= numberOfCandidates; i++){
         sprintf(filename,"candidate%d.txt",i);
-                fp=fopen(filename,"w");
+		fp=fopen(filename,"w");
         fprintf(
             fp,"0\n%s",
             candidateArray[i-1].cname
         );
-                fclose(fp);
+		fclose(fp);
     }
     printf("Created Files successfully\n");
 }
@@ -122,18 +143,18 @@ void deleteIllegalVote(char userID[15])
     sprintf(filename,"candidate%d.txt",candidateArray[studentVotes[location-1]-49].cid);
     candidateArray[studentVotes[location-1]-49].votes--;
     studentVotes[location-1]='0';
-    if ((fp = fopen(filename,"r")) == NULL)
-    {
+    if ((fp = fopen(filename,"r")) == NULL)    
+    {    
         printf("\nFile cannot be opened...Operation Failed");
         return;
     }
-    printf("\nDeleting in process...\n ");
-    if ((fcp = fopen("tmp.txt","w")) == NULL)
-    {
+    printf("\nDeleting in process...\n ");    
+    if ((fcp = fopen("tmp.txt","w")) == NULL)    
+    {    
         printf("\nFile cannot be opened...Operation Failed");
         return;
     }
-
+    
     while (!feof(fp))
     {
         fscanf(fp,"%s",line);
@@ -141,14 +162,14 @@ void deleteIllegalVote(char userID[15])
     }
     fclose(fp);
     fclose(fcp);
-    if ((fp = fopen(filename,"w")) == NULL)
-    {
+    if ((fp = fopen(filename,"w")) == NULL)    
+    {    
         printf("\nFile cannot be opened...Operation Failed");
         return;
     }
     int numFromFile;
     char cnameFromFile[20];
-    fcp = fopen("tmp.txt","r");
+    fcp = fopen("tmp.txt","r");  
     fscanf(fcp,"%d",&numFromFile);
     fprintf(fp,"%d",numFromFile-1);
     fscanf(fcp,"%s",cnameFromFile);
@@ -162,7 +183,7 @@ void deleteIllegalVote(char userID[15])
     fclose(fcp);
     remove("tmp.txt");
     printf("\nVote deleted successfully\nPress any key to continue...");
-    getc(stdin);
+    getch();
 }
 
 int getWinner(){
@@ -171,7 +192,7 @@ int getWinner(){
     for(int i = 0;i < numberOfCandidates; i++){
         if(candidateArray[i].votes > maxV) {
             winnerCid = candidateArray[i].cid;
-            maxV = candidateArray[i].votes;
+            maxV = candidateArray[i].votes;      
         }
         else if(candidateArray[i].votes == maxV) {
             return -1;
@@ -183,7 +204,7 @@ int getWinner(){
 void initiateNewElection()
 {
     printf("\nNew Election Initiation:\n");
-
+    
     printf("\nElections for which Year: ");
     scanf("%d",&currentValidID.year);
     printf("Enter branch code:");
@@ -242,7 +263,7 @@ void loadElectionInfoFromFile()
     fseek(f1,2,SEEK_CUR);
     fscanf(f1,"%d",&numberOfCandidates);
     fclose(f1);
-
+   
     //load candidates info and student votes
     for (int i = 0; i < currentValidID.totalVoters; i++)
     {
@@ -272,20 +293,20 @@ void loadElectionInfoFromFile()
         studentVotes[location-1] = '$';
     }
     fclose(f3);
-
+    
 }
 
 void adminPanel()
 {
     while(1){
-
+        
         if(authenticateAdmin()!=1){
-            printf("\n Wrong Username or Password \n");
+            printf("\n Wrong Username or Password \n");            
             break;
         }
 
         printf("\n\nLOGGED IN SUCCESSFULLY (Press Enter)");
-                getc(stdin);
+		getch();
 
         while(1)
         {
@@ -293,7 +314,7 @@ void adminPanel()
             char input;char banInp;
             int WinnerCid, totalVotedNow=0;
             printf("\n1.New Election\n2.Continue Previous Election\n3.Delete Illegal Vote\n4.Ban User IDs\n5.Result\n6.Logout\nOption:");
-                        scanf(" %c",&input);
+			scanf(" %c",&input);
 
             switch(input)
             {
@@ -336,9 +357,9 @@ void adminPanel()
                     return;
                 default:
                     printf("Invalid Option");
-                                        getc(stdin);
+					getch();
             }
-
+			
         }
     }
 
@@ -349,10 +370,10 @@ int isValid(char userID[15])
 {
     if(strlen(userID)!=14)
         return 0;
-
+    
     int inputedYear=extractYear(userID);
     int inputedRollNo = extractRollNo(userID);
-
+    
     if(inputedYear!=currentValidID.year || checkBranchCode(userID)!=1 || inputedRollNo>currentValidID.totalVoters)
         return 0;
 
@@ -395,47 +416,49 @@ void saveVote(char userID[15],char voteInput)
 void studentPanel()
 {
     char userID[15];
-    char voteInput = '1';
+    char voteInput;
     while(1)
-        {
-                printf("\n\n  To exit press 0");
+	{
+		printf("\n\n  To exit press 0");
         printf("\n  Enter user ID:");
         scanf("%s",userID);
+	  while( (getchar()) != '\n');
         if(strcmp(userID, "0")==0)
-                                return;
+				return;
         if(isValid(userID)!=1)
         {
             printf("\n  Invalid User ID(Press Enter)");
-            getc(stdin);
+            getch();
             continue;
         }
         if(isBanned(userID)!=0)
         {
             printf("\nThis User ID is currently banned...\nContact Admin for the reason...(Press Enter to continue)");
-            getc(stdin);
+            getch();
             continue;
         }
         if(isVoted(userID)!=0)
         {
             printf("\n  Your PRN entered is already voted\n  Contact Admin for furthur query");
-            getc(stdin);
+            getch();
             continue;
         }
         printf("\n\n  Candidates for election:");
-                for (int i = 0; i < numberOfCandidates; i++)
+		for (int i = 0; i < numberOfCandidates; i++)
         {
             printf("\n  %d. %s",i+1,candidateArray[i].cname);
         }
         printf("\n\n  Your Vote(Enter Number):");
-          printf("*");
+        voteInput=getch();
+        printf("*");
         if(voteInput-48 < 1 || voteInput-48 > numberOfCandidates)
         {
             printf("\nInvalid Vote\nTry Again...");
-            getc(stdin);
+            getch();
             continue;
         }
         saveVote(userID,voteInput);
         printf("\n\nThanks for your precious vote(Press Enter)");
-        getc(stdin);
+        getch();
     }
 };
